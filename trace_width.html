@@ -3,293 +3,260 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PCB Trace Width Calculator (IPC-2221)</title>
+    <title>Hardware Design Tool Suite</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary-accent': '#f97316', // Orange 600 - High visibility/Action color
+                        'background-light': '#fefefe', // Almost pure white
+                        'background-main': '#f0f4f8', // Light gray/blue for the body
+                        'success-bg': '#d1fae5', // Tailwind green-100
+                        'success-text': '#047857', // Tailwind green-700
+                        'error-bg': '#fee2e2', // Tailwind red-100
+                        'error-text': '#b91c1c', // Tailwind red-700
+                    }
+                }
+            }
+        }
+    </script>
     
     <!-- Explicit MathJax Configuration to ensure dollar signs ($) render as inline math -->
     <script type="text/x-mathjax-config">
-      MathJax.Hub.Config({
-        tex2jax: {
-          inlineMath: [['$','$'], ['\\(','\\)']],
-          displayMath: [['$$','$$'], ['\\[','\\]']],
-          processEscapes: true
-        }
-      });
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$','$'], ['\\(','\\)']],
+                displayMath: [['$$','$$'], ['\\[','\\]']],
+                processEscapes: true
+            }
+        });
     </script>
     <!-- Include MathJax for rendering LaTeX-style mathematical formulas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML" async></script>
 
-    <!-- Styling is embedded here to create a single-file application -->
     <style>
-        :root {
-            --primary-color: #007bff;
-            --secondary-color: #6c757d;
-            --success-color: #28a745;
-            --bg-color: #f8f9fa;
-            --card-bg: #ffffff;
-            --shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        /* Custom styles for card aesthetics and hover effects */
+        .card-glow {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s ease-in-out;
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: var(--bg-color);
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
+        .card-glow:hover {
+            box-shadow: 0 20px 25px -5px rgba(249, 115, 22, 0.1), 0 10px 10px -5px rgba(249, 115, 22, 0.04);
+            transform: translateY(-2px);
         }
-
-        .container {
-            max-width: 600px;
-            width: 100%;
-            background-color: var(--card-bg);
-            /* Added rounded corners for better aesthetics */
-            border-radius: 12px; 
-            box-shadow: var(--shadow);
-            padding: 30px;
-        }
-
-        h1 {
-            color: var(--primary-color);
-            text-align: center;
-            margin-bottom: 25px;
-            font-size: 1.8rem;
-        }
-
-        .input-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: var(--secondary-color);
-        }
-
-        input[type="number"], select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ced4da;
-            border-radius: 8px; /* Added rounded corners to inputs */
-            box-sizing: border-box;
-            font-size: 1rem;
-        }
-
-        .radio-group {
-            display: flex;
-            gap: 20px;
-            margin-top: 5px;
-            padding: 10px 0;
-        }
-
-        .radio-group input[type="radio"] {
-            margin-right: 5px;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 8px; /* Added rounded corners to button */
-            cursor: pointer;
-            font-size: 1.1rem;
-            font-weight: 700;
-            transition: background-color 0.3s ease, transform 0.1s;
-            margin-top: 20px;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-        }
-
-        button:active {
-            transform: translateY(1px);
-        }
-
-        #result {
-            margin-top: 30px;
-            padding: 15px;
-            border: 2px solid var(--success-color);
-            border-radius: 8px; /* Added rounded corners to result box */
-            background-color: #d4edda;
-            color: #155724;
-            text-align: center;
-            font-size: 1.2rem;
-            font-weight: 700;
-            display: none; /* Hidden by default */
+        .nav-link:hover {
+            color: #f97316;
+            border-bottom: 2px solid #f97316;
         }
         
-        /* Ensures the descriptive text doesn't wrap due to the MathJax symbol */
+        /* Specific styling for the MathJax result output, ensuring proper alignment and non-wrapping */
         #result .result-label {
-            white-space: nowrap;
-            /* Ensures the div containing the text is treated as a non-wrapping block */
+            white-space: nowrap; 
             display: inline-block; 
             margin-bottom: 5px;
         }
 
-        /* Use Flexbox to stack and center the mils and mm values neatly */
         #result span {
             display: flex; 
-            flex-direction: column; /* Stack items vertically */
-            align-items: center; /* Center items horizontally */
-            margin-top: 0; /* Adjusted vertical spacing */
+            flex-direction: column; 
+            align-items: center; 
             font-size: 1.6rem;
-            color: var(--success-color);
         }
         
+        #result .mils-value {
+            font-weight: 700;
+        }
+
         #result .mm-value {
             font-size: 1.1rem;
             font-weight: 400;
-            color: #4CAF50; /* A slightly different shade for clarity */
-            margin-top: 0; /* Removed margin to close the gap */
-        }
-
-        .formula-info {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #f1f1f1;
-            border-radius: 8px; /* Added rounded corners to formula box */
-            font-size: 0.9rem;
-            color: #495057;
-        }
-
-        .footer-link {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 0.9rem;
-            color: var(--secondary-color);
-        }
-        .footer-link a {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-weight: 600;
-        }
-        .footer-link a:hover {
-            text-decoration: underline;
+            margin-top: 0;
         }
     </style>
 </head>
-<body>
+<body class="bg-background-main min-h-screen flex items-start justify-center p-4 sm:p-8 font-sans text-gray-800">
 
-<div class="container">
-    <h1>⚡️ PCB Trace Width Calculator</h1>
-    
-    <div class="input-group">
-        <label>1. Current ($\boldsymbol{I}$ in Amps)</label>
-        <input type="number" id="current" value="1.0" min="0.01" step="0.1">
-    </div>
-
-    <div class="input-group">
-        <label>2. Temperature Rise ($\boldsymbol{\Delta T}$ in °C)</label>
-        <input type="number" id="tempRise" value="10" min="1" step="1">
-    </div>
-
-    <div class="input-group">
-        <label>3. Copper Thickness ($\boldsymbol{t}$ in oz)</label>
-        <select id="thickness">
-            <!-- Options provided based on common PCB fabrication options -->
-            <option value="0.5">0.5 oz (approx 17 μm)</option>
-            <option value="1.0" selected>1.0 oz (approx 35 μm)</option>
-            <option value="2.0">2.0 oz (approx 70 μm)</option>
-            <option value="3.0">3.0 oz (approx 105 μm)</option>
-        </select>
-    </div>
-
-    <div class="input-group">
-        <label>4. Layer Type ($\boldsymbol{k}$ constant)</label>
-        <div class="radio-group">
-            <input type="radio" id="externalLayer" name="layerType" value="0.048" checked>
-            <label for="externalLayer">External (0.048)</label>
+    <div class="w-full max-w-4xl mt-8 p-4 sm:p-8 rounded-xl space-y-12 bg-background-light card-glow border border-gray-100">
+        
+        <!-- Navigation Menu -->
+        <nav class="flex justify-between items-center pb-6 border-b border-gray-200">
+            <!-- Logo/Name -->
+            <a href="#" class="text-xl font-bold text-gray-900 tracking-wider">
+                Engineering <span class="text-primary-accent">Tools</span>
+            </a>
             
-            <input type="radio" id="internalLayer" name="layerType" value="0.024">
-            <label for="internalLayer">Internal (0.024)</label>
-        </div>
+            <!-- Menu Links -->
+            <div class="flex space-x-4 sm:space-x-8 text-sm font-medium text-gray-600">
+                <a href="#" class="nav-link transition duration-200 pb-1 border-b-2 border-transparent text-primary-accent border-primary-accent">
+                    Dashboard
+                </a>
+                <a href="#calculator" class="nav-link transition duration-200 pb-1 border-b-2 border-transparent">
+                    Calculator
+                </a>
+                <a href="https://www.linkedin.com/in/rakesh-bhanavath" target="_blank" class="nav-link transition duration-200 pb-1 border-b-2 border-transparent">
+                    Resume
+                </a>
+                <a href="mailto:bhanavathrakesh12345@gmail.com" class="nav-link transition duration-200 pb-1 border-b-2 border-transparent">
+                    Contact
+                </a>
+            </div>
+        </nav>
+
+        <!-- Header Section (Simplified) -->
+        <header class="text-center space-y-2 border-b-2 border-gray-100 pb-8">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight">
+                Hardware Design Tool Suite
+            </h1>
+            <p class="text-lg sm:text-xl font-medium text-gray-600 pt-2">
+                Essential calculators and references for electronics design.
+            </p>
+        </header>
+
+        <!-- Tool Section: PCB Trace Width Calculator (Embedded Content) -->
+        <section id="calculator" class="space-y-8">
+            <h2 class="text-3xl font-bold text-gray-800 text-center">
+                PCB Trace Width Calculator (IPC-2221)
+            </h2>
+            
+            <!-- Calculator Card -->
+            <div class="p-6 md:p-8 bg-white rounded-xl shadow-xl border border-gray-100 space-y-5">
+                
+                <div class="input-group">
+                    <label class="block mb-2 font-semibold text-gray-700">1. Current ($\boldsymbol{I}$ in Amps)</label>
+                    <input type="number" id="current" value="1.0" min="0.01" step="0.1" 
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary-accent focus:border-primary-accent transition duration-150 shadow-sm">
+                </div>
+
+                <div class="input-group">
+                    <label class="block mb-2 font-semibold text-gray-700">2. Temperature Rise ($\boldsymbol{\Delta T}$ in °C)</label>
+                    <input type="number" id="tempRise" value="10" min="1" step="1" 
+                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary-accent focus:border-primary-accent transition duration-150 shadow-sm">
+                </div>
+
+                <div class="input-group">
+                    <label class="block mb-2 font-semibold text-gray-700">3. Copper Thickness ($\boldsymbol{t}$ in oz)</label>
+                    <select id="thickness" 
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary-accent focus:border-primary-accent transition duration-150 shadow-sm appearance-none bg-white">
+                        <option value="0.5">0.5 oz (approx 17 μm)</option>
+                        <option value="1.0" selected>1.0 oz (approx 35 μm)</option>
+                        <option value="2.0">2.0 oz (approx 70 μm)</option>
+                        <option value="3.0">3.0 oz (approx 105 μm)</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label class="block mb-2 font-semibold text-gray-700">4. Layer Type ($\boldsymbol{k}$ constant)</label>
+                    <div class="flex gap-6 mt-2 p-2 bg-gray-50 rounded-lg">
+                        <label for="externalLayer" class="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" id="externalLayer" name="layerType" value="0.048" checked class="text-primary-accent focus:ring-primary-accent">
+                            <span>External (k=0.048)</span>
+                        </label>
+                        
+                        <label for="internalLayer" class="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" id="internalLayer" name="layerType" value="0.024" class="text-primary-accent focus:ring-primary-accent">
+                            <span>Internal (k=0.024)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button onclick="calculateTraceWidth()"
+                        class="px-6 py-3 text-base font-semibold rounded-lg shadow-md text-white bg-primary-accent hover:bg-orange-700 transition duration-300 w-full mt-4">
+                    Calculate Minimum Trace Width
+                </button>
+
+                <!-- Result Display Area -->
+                <div id="result" class="hidden mt-6 p-4 rounded-lg text-center border-2 border-green-500 bg-success-bg text-success-text transition duration-300">
+                    <div class="result-label text-base font-bold">Minimum Trace Width ($\boldsymbol{w}$) Required:</div>
+                    <span id="widthResult" class="mils-value text-green-700"></span>
+                </div>
+            </div>
+
+            <!-- Formula Details -->
+            <div class="formula-info p-6 bg-gray-50 rounded-xl border border-gray-200 text-sm text-gray-600">
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Formula Details (IPC-2221, High Current)</h3>
+                <p>Step 1: Primary Relationship (Current vs. Area)</p>
+                $$I = k \cdot (\Delta T)^{0.44} \cdot A^{0.725}$$
+                
+                <p>Step 2: Cross-sectional Area ($A$ in $\text{mils}^2$)</p>
+                $$A = \left(\frac{I}{k \cdot (\Delta T)^{0.44}}\right)^{1.3793}$$
+                
+                <p>Step 3: Trace Width ($w$ in mils)</p>
+                $$w = \frac{A}{t \times 1.378}$$
+                
+                <ul class="list-disc list-inside mt-2 space-y-1">
+                    <li>$\boldsymbol{k} = 0.048$ (External) / $0.024$ (Internal)</li>
+                    <li>$\boldsymbol{t}$: Copper Thickness in ounces (oz)</li>
+                    <li>$\boldsymbol{1.378}$: Conversion factor ($\text{mils}/\text{oz}$) used in the final step.</li>
+                </ul>
+            </div>
+            
+        </section>
+
+        <!-- Footer -->
+        <footer class="pt-8 border-t-2 border-gray-100 text-center">
+            <p class="text-xs text-gray-400">
+                &copy; Engineering Tool Suite.
+            </p>
+        </footer>
+
     </div>
-
-    <button onclick="calculateTraceWidth()">Calculate Trace Width</button>
-
-    <div id="result">
-        <!-- Using a dedicated class with white-space: nowrap on an inline-block div to ensure the phrase never wraps. -->
-        <div class="result-label">Trace Width ($\boldsymbol{w}$) Required:</div>
-        <span id="widthResult"></span>
-    </div>
-
-    <div class="formula-info">
-        <h3>Formula Details (IPC-2221, High Current)</h3>
-        <!-- Displaying the primary IPC formula -->
-        <p>Step 1: Primary Relationship (Current vs. Area)</p>
-        $$I = k \cdot (\Delta T)^{0.44} \cdot A^{0.725}$$
-        
-        <!-- Displaying the solved formula for Area (A) -->
-        <p>Step 2: Cross-sectional Area ($A$ in $\text{mils}^2$)</p>
-        $$A = \left(\frac{I}{k \cdot (\Delta T)^{0.44}}\right)^{1.3793}$$
-        
-        <!-- Displaying the final formula for Width (w) -->
-        <p>Step 3: Trace Width ($w$ in mils)</p>
-        $$w = \frac{A}{t \times 1.378}$$
-        
-        <p>
-            $\boldsymbol{k} = 0.048$ (External) / $0.024$ (Internal) <br>
-            $\boldsymbol{1.3793} \approx 1/0.725$ (Exponent to solve for Area)
-        </p>
-    </div>
-
-    <!-- LinkedIn Profile -->
-    <div class="footer-link">
-        <p>Built by: <a href="https://www.linkedin.com/in/rakesh-bhanavath" target="_blank">Rakesh Bhanavath (LinkedIn Profile)</a></p>
-    </div>
-
-</div>
 
 <script>
     /**
      * Calculates the minimum required PCB trace width based on the standard IPC-2221 High Current formula.
-     * I = k * (ΔT)^0.44 * A^0.725
-     * and displays the result in both mils and mm.
+     * The formula is: I = k * (ΔT)^0.44 * A^0.725, which is solved for A and then for w.
      */
     function calculateTraceWidth() {
         // Step 1: Get inputs from the form elements
         const I = parseFloat(document.getElementById('current').value);
         const deltaT = parseFloat(document.getElementById('tempRise').value);
         const t = parseFloat(document.getElementById('thickness').value);
-        // Get the 'k' constant based on the selected radio button (External or Internal layer)
+        // Get the 'k' constant based on the selected layer type (External or Internal)
         const k = parseFloat(document.querySelector('input[name="layerType"]:checked').value);
         
-        // Constants defined by the IPC-2221 formula
-        const exp_dt = 0.44;     // Exponent for Temperature Rise
-        const exp_area_inv = 1 / 0.725; // Exponent for Area (approx 1.3793)
-        const conversionFactor = 1.378; // mils per oz (constant for imperial units)
+        // Constants defined by the IPC-2221 formula and unit conversion
+        const exp_dt = 0.44;                // Exponent for Temperature Rise
+        const exp_area_inv = 1 / 0.725;     // Exponent to solve for Area (approx 1.3793)
+        const conversionFactor = 1.378;     // mils per oz (constant for imperial units)
         const conversion_mil_to_mm = 0.0254; // 1 mil = 0.0254 mm
 
         const resultElement = document.getElementById('result');
         const widthResultElement = document.getElementById('widthResult');
 
+        // Reset styling and hide result initially
+        resultElement.style.display = 'none';
+        
         // Input validation: Ensure required fields are positive numbers
-        if (isNaN(I) || isNaN(deltaT) || I <= 0 || deltaT <= 0) {
-            // Display error message
-            widthResultElement.innerHTML = "Invalid Input: Current and Temp Rise must be positive.";
+        if (isNaN(I) || isNaN(deltaT) || I <= 0 || deltaT <= 0 || t <= 0) {
+            // Apply error styling using Tailwind classes defined in config
+            resultElement.style.borderColor = '#dc3545';
+            resultElement.classList.remove('bg-success-bg', 'text-success-text');
+            resultElement.classList.add('bg-error-bg', 'text-error-text');
+            widthResultElement.innerHTML = "Invalid Input: Current, Temp Rise, and Thickness must be positive.";
             resultElement.style.display = 'block';
-            resultElement.style.borderColor = '#dc3545'; // Error color
-            resultElement.style.backgroundColor = '#f8d7da';
-            resultElement.style.color = '#721c24';
             return;
         }
 
         // --- Step 2: Calculate Cross-sectional Area (A in sq mils) ---
-        // Formula solved for A: A = [I / (k * (ΔT)^0.44)]^(1/0.725)
         try {
+            // Calculate k * (ΔT)^0.44
             const temp_rise_power = Math.pow(deltaT, exp_dt);
-            const ratio = I / (k * temp_rise_power);
+            const denominator = k * temp_rise_power;
             
-            if (isNaN(ratio) || !isFinite(ratio)) {
-                throw new Error("Ratio calculation failed (possible division by zero or negative result).");
+            if (denominator === 0) {
+                throw new Error("Temperature rise is too low or constant k is zero.");
             }
             
-            // Calculate Area (A) in sq mils using the solved exponent
+            // Calculate the ratio [I / (k * (ΔT)^0.44)]
+            const ratio = I / denominator;
+            
+            // Calculate Area (A) in sq mils
             const A = Math.pow(ratio, exp_area_inv);
 
             // --- Step 3: Calculate Trace Width (w in mils) ---
@@ -297,7 +264,7 @@
             const width_denominator = t * conversionFactor;
             
             if (width_denominator === 0) {
-                 throw new Error("Division by zero in Width calculation (check thickness).");
+                 throw new Error("Thickness denominator is zero.");
             }
             
             const width_mils = A / width_denominator;
@@ -305,25 +272,28 @@
 
             // Display Success Result in both mils and mm
             widthResultElement.innerHTML = `
-                ${width_mils.toFixed(3)} mils
+                <div class="mils-value">${width_mils.toFixed(3)} mils</div>
                 <div class="mm-value">(${width_mm.toFixed(3)} mm)</div>
             `;
             
+            // Apply success styling
+            resultElement.classList.remove('bg-error-bg', 'text-error-text');
+            resultElement.classList.add('bg-success-bg', 'text-success-text');
+            resultElement.style.borderColor = '#34d399'; // Green 400
             resultElement.style.display = 'block';
-            // Revert to success styling
-            resultElement.style.borderColor = 'var(--success-color)';
-            resultElement.style.backgroundColor = '#d4edda';
-            resultElement.style.color = '#155724';
 
         } catch (error) {
             // Handle any calculation errors gracefully
+            resultElement.classList.remove('bg-success-bg', 'text-error-text');
+            resultElement.classList.add('bg-error-bg', 'text-error-text');
+            resultElement.style.borderColor = '#f87171'; // Red 400
             widthResultElement.innerHTML = `Calculation Error: ${error.message}`;
             resultElement.style.display = 'block';
-            resultElement.style.borderColor = '#dc3545';
-            resultElement.style.backgroundColor = '#f8d7da';
-            resultElement.style.color = '#721c24';
         }
     }
+    
+    // Run calculation once on load with default values for immediate feedback
+    document.addEventListener('DOMContentLoaded', calculateTraceWidth);
 </script>
 
 </body>
