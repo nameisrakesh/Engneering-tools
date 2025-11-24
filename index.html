@@ -123,7 +123,7 @@
             display: none; /* Hidden by default */
         }
         
-        /* FIX: Ensures the descriptive text doesn't wrap due to the MathJax symbol */
+        /* Ensures the descriptive text doesn't wrap due to the MathJax symbol */
         #result .result-label {
             white-space: nowrap;
             /* Ensures the div containing the text is treated as a non-wrapping block */
@@ -131,7 +131,7 @@
             margin-bottom: 5px;
         }
 
-        /* FIX: Use Flexbox to stack and center the mils and mm values neatly */
+        /* Use Flexbox to stack and center the mils and mm values neatly */
         #result span {
             display: flex; 
             flex-direction: column; /* Stack items vertically */
@@ -213,23 +213,28 @@
     <button onclick="calculateTraceWidth()">Calculate Trace Width</button>
 
     <div id="result">
-        <!-- CRITICAL FIX APPLIED: Using a dedicated class with white-space: nowrap on an inline-block div to ensure the phrase never wraps. -->
+        <!-- Using a dedicated class with white-space: nowrap on an inline-block div to ensure the phrase never wraps. -->
         <div class="result-label">Trace Width ($\boldsymbol{w}$) Required:</div>
         <span id="widthResult"></span>
     </div>
 
     <div class="formula-info">
-        <h3>Formula Details (IPC-2221)</h3>
-        <!-- MathJax will render this formula correctly -->
-        <p>Step 1: Cross-sectional Area in $mils^2$ (A)</p>
-        $$A = \frac{I}{k(\Delta T)^b}$$
+        <h3>Formula Details (IPC-2221, High Current)</h3>
+        <!-- Displaying the primary IPC formula -->
+        <p>Step 1: Primary Relationship (Current vs. Area)</p>
+        $$I = k \cdot (\Delta T)^{0.44} \cdot A^{0.725}$$
         
-        <!-- MathJax will render this formula correctly -->
-        <p>Step 2: Trace Width in mils (w)</p>
+        <!-- Displaying the solved formula for Area (A) -->
+        <p>Step 2: Cross-sectional Area ($A$ in $\text{mils}^2$)</p>
+        $$A = \left(\frac{I}{k \cdot (\Delta T)^{0.44}}\right)^{1.3793}$$
+        
+        <!-- Displaying the final formula for Width (w) -->
+        <p>Step 3: Trace Width ($w$ in mils)</p>
         $$w = \frac{A}{t \times 1.378}$$
+        
         <p>
-            $\boldsymbol{b} = 0.44$ (Constant, derived from IPC)<br>
-            $\boldsymbol{1.378}$ is the conversion factor (mils per oz).
+            $\boldsymbol{k} = 0.048$ (External) / $0.024$ (Internal) <br>
+            $\boldsymbol{1.3793} \approx 1/0.725$ (Exponent to solve for Area)
         </p>
     </div>
 
@@ -242,7 +247,8 @@
 
 <script>
     /**
-     * Calculates the minimum required PCB trace width based on IPC-2221 standards
+     * Calculates the minimum required PCB trace width based on the standard IPC-2221 High Current formula.
+     * I = k * (ΔT)^0.44 * A^0.725
      * and displays the result in both mils and mm.
      */
     function calculateTraceWidth() {
@@ -254,7 +260,8 @@
         const k = parseFloat(document.querySelector('input[name="layerType"]:checked').value);
         
         // Constants defined by the IPC-2221 formula
-        const b = 0.44;
+        const exp_dt = 0.44;     // Exponent for Temperature Rise
+        const exp_area_inv = 1 / 0.725; // Exponent for Area (approx 1.3793)
         const conversionFactor = 1.378; // mils per oz (constant for imperial units)
         const conversion_mil_to_mm = 0.0254; // 1 mil = 0.0254 mm
 
@@ -272,24 +279,25 @@
             return;
         }
 
-        // --- Step 1: Calculate Cross-sectional Area (A in sq mils) ---
-        // Formula: A = I / (k * (ΔT)^b)
+        // --- Step 2: Calculate Cross-sectional Area (A in sq mils) ---
+        // Formula solved for A: A = [I / (k * (ΔT)^0.44)]^(1/0.725)
         try {
-            const temp_rise_power = Math.pow(deltaT, b);
-            const area_denominator = k * temp_rise_power;
+            const temp_rise_power = Math.pow(deltaT, exp_dt);
+            const ratio = I / (k * temp_rise_power);
             
-            if (area_denominator === 0) {
-                throw new Error("Division by zero in Area calculation.");
+            if (isNaN(ratio) || !isFinite(ratio)) {
+                throw new Error("Ratio calculation failed (possible division by zero or negative result).");
             }
             
-            const A = I / area_denominator;
+            // Calculate Area (A) in sq mils using the solved exponent
+            const A = Math.pow(ratio, exp_area_inv);
 
-            // --- Step 2: Calculate Trace Width (w in mils) ---
+            // --- Step 3: Calculate Trace Width (w in mils) ---
             // Formula: w = A / (t * 1.378)
             const width_denominator = t * conversionFactor;
             
             if (width_denominator === 0) {
-                 throw new Error("Division by zero in Width calculation.");
+                 throw new Error("Division by zero in Width calculation (check thickness).");
             }
             
             const width_mils = A / width_denominator;
